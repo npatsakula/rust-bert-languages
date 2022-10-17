@@ -76,7 +76,8 @@ fn into_helper(
 
     quote! {
         impl Language {
-            fn #name(&self) -> Option<&'static str> {
+            #[allow(unreachable_code)]
+            pub fn #name(&self) -> Option<&'static str> {
                 let result = match self {
                     #( #source, )*
                     _ => return None,
@@ -97,14 +98,15 @@ fn from_helper(
         .filter_map(|(ident, ids)| getter(ids).map(|id| (ident, id)))
         .map(|(ident, id)| {
             let ident = format_ident!("{}", ident);
-            quote! { Self::#ident => #id }
+            quote! { #id => Self::#ident }
         })
         .collect::<Vec<_>>();
 
     quote! {
         impl Language {
-            fn #name(&self) -> Option<&'static str> {
-                let result = match self {
+            #[allow(unreachable_code)]
+            pub fn #name(source: &str) -> Option<Self> {
+                let result = match source {
                     #( #source, )*
                     _ => return None,
                 };
@@ -138,14 +140,20 @@ pub fn codes_setter(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream 
 
     let into_1 = into_helper(quote! { get_iso639_1 }, &gids, |ids| ids.iso_639_1.as_ref());
     let into_3 = into_helper(quote! { get_iso639_3 }, &gids, |ids| ids.iso_639_3.as_ref());
-    let into_nllb = into_helper(quote! { get_iso639_3 }, &gids, |ids| ids.nllb.as_ref());
+    let into_nllb = into_helper(quote! { get_nllb }, &gids, |ids| ids.nllb.as_ref());
+
+    let from_1 = from_helper(quote! { from_iso639_1 }, &gids, |ids| ids.iso_639_1.as_ref());
+    let from_3 = from_helper(quote! { from_iso639_3 }, &gids, |ids| ids.iso_639_3.as_ref());
+    let from_nllb = from_helper(quote! { from_nllb }, &gids, |ids| ids.nllb.as_ref());
 
     quote! {
         #into_1
-
         #into_3
-
         #into_nllb
+
+        #from_1
+        #from_3
+        #from_nllb
     }
     .into()
 }
